@@ -1,0 +1,99 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = "file:./database/develop.sqlite"
+}
+
+model Team {
+  id         Int     @id @default(autoincrement())
+  name       String
+  email      String  @unique
+  password   String
+  pin        String?
+  role       String
+  department String
+  status     String
+
+  roleId  Int?
+  roles Role? @relation(fields: [roleId], references: [id], onDelete: Cascade)
+}
+
+model Document {
+  id         Int      @id @default(autoincrement())
+  name       String
+  type       String
+  category   String
+  uploadBy   String
+  uploadDate DateTime @default(now())
+  size       Int
+}
+
+model Status {
+  id          Int    @id @default(autoincrement())
+  name        String @unique
+  description String
+
+  trackings Tracking[]
+}
+
+model Tracking {
+  id                  Int       @id @default(autoincrement())
+  kasId               String
+  courier             String?
+  trackingNumber      String
+  capturedImages      String?
+  statusId            Int?
+  deliveryDate        DateTime?
+  shippingDate        DateTime?
+  transitTime         String?
+  destination         String?
+  origin              String?
+  fedexDeliveryStatus String?
+  route               String?
+  weight              Float?
+  lastUpdate          DateTime?
+  timestamp           DateTime  @default(now())
+
+  status  Status?           @relation(fields: [statusId], references: [id])
+  history TrackingHistory[]
+  images  Image[]           @relation("TrackingImages")
+}
+
+model TrackingHistory {
+  id          String   @id @default(uuid())
+  trackingId  Int
+  date        DateTime
+  status      String
+  time        String
+  location    String
+  description String
+
+  tracking Tracking @relation(fields: [trackingId], references: [id], onDelete: Cascade)
+}
+
+model Image {
+  id         Int      @id @default(autoincrement())
+  url        String
+  createdAt  DateTime @default(now())
+  trackingId Int? 
+
+  tracking Tracking? @relation(fields: [trackingId], references: [id], name: "TrackingImages", onDelete: SetNull)
+}
+
+model Role {
+  id          Int          @id @default(autoincrement())
+  name        String
+  permissions Permission[] @relation("RolePermissions")
+
+  team Team[]
+}
+
+model Permission {
+  id    Int    @id @default(autoincrement())
+  name  String
+  description String
+  roles Role[] @relation("RolePermissions")
+}

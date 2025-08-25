@@ -1,0 +1,271 @@
+{
+    "trackingNumberInfo": {
+        "trackingNumber": "397908094169",
+        "trackingNumberUniqueId": "2460070000~397908094169~FX",
+        "carrierCode": "FDXE"
+    },
+    "additionalTrackingInfo": {
+        "nickname": "",
+        "hasAssociatedShipments": false
+    },
+    "shipperInformation": {
+        "contact": {},
+        "address": {
+            "city": "BRONX",
+            "stateOrProvinceCode": "NY",
+            "countryCode": "US",
+            "residential": false,
+            "countryName": "United States"
+        }
+    },
+    "recipientInformation": {
+        "contact": {},
+        "address": {
+            "city": "LOS ANGELES",
+            "stateOrProvinceCode": "CA",
+            "countryCode": "US",
+            "residential": false,
+            "countryName": "United States"
+        }
+    },
+    "latestStatusDetail": {
+        "code": "PU",
+        "derivedCode": "PU",
+        "statusByLocale": "Picked up",
+        "description": "Picked up",
+        "scanLocation": {
+            "city": "BRONX",
+            "stateOrProvinceCode": "NY",
+            "countryCode": "US",
+            "residential": false,
+            "countryName": "United States"
+        },
+        "delayDetail": {
+            "status": "EARLY"
+        }
+    },
+    "dateAndTimes": [
+        {
+            "type": "ESTIMATED_DELIVERY",
+            "dateTime": "2023-05-08T20:00:00-07:00"
+        },
+        {
+            "type": "COMMITMENT",
+            "dateTime": "2023-05-09T20:00:00-07:00"
+        },
+        {
+            "type": "ACTUAL_PICKUP",
+            "dateTime": "2023-05-05T16:36:00-04:00"
+        },
+        {
+            "type": "SHIP",
+            "dateTime": "2023-05-05T00:00:00-06:00"
+        },
+        {
+            "type": "ACTUAL_TENDER",
+            "dateTime": "2023-05-05T16:36:00-04:00"
+        }
+    ],
+    "availableImages": [],
+    "specialHandlings": [
+        {
+            "type": "DELIVER_WEEKDAY",
+            "description": "Deliver Weekday",
+            "paymentType": "OTHER"
+        },
+        {
+            "type": "RESIDENTIAL_DELIVERY",
+            "description": "Residential Delivery",
+            "paymentType": "OTHER"
+        },
+        {
+            "type": "DIRECT_SIGNATURE_REQUIRED",
+            "description": "Direct Signature Required",
+            "paymentType": "OTHER"
+        }
+    ],
+    "packageDetails": {
+        "packagingDescription": {
+            "type": "FEDEX_ENVELOPE",
+            "description": "FedEx Envelope"
+        },
+        "sequenceNumber": "1",
+        "count": "1",
+        "weightAndDimensions": {
+            "weight": [
+                {
+                    "value": "0.5",
+                    "unit": "LB"
+                },
+                {
+                    "value": "0.23",
+                    "unit": "KG"
+                }
+            ]
+        },
+        "packageContent": []
+    },
+    "shipmentDetails": {
+        "possessionStatus": true,
+        "weight": [
+            {
+                "value": "0.5",
+                "unit": "LB"
+            },
+            {
+                "value": "0.23",
+                "unit": "KG"
+            }
+        ]
+    },
+    "scanEvents": [
+        {
+            "date": "2023-05-05T17:01:00-04:00",
+            "eventType": "AE",
+            "eventDescription": "Shipment arriving early",
+            "exceptionCode": "",
+            "exceptionDescription": "",
+            "scanLocation": {
+                "streetLines": [
+                    ""
+                ],
+                "city": "BRONX",
+                "stateOrProvinceCode": "NY",
+                "postalCode": "10454",
+                "countryCode": "US",
+                "residential": false,
+                "countryName": "United States"
+            },
+            "locationId": "JREA",
+            "locationType": "PICKUP_LOCATION",
+            "derivedStatusCode": "IT",
+            "derivedStatus": "In transit"
+        },
+        {
+            "date": "2023-05-05T16:36:00-04:00",
+            "eventType": "PU",
+            "eventDescription": "Picked up",
+            "exceptionCode": "",
+            "exceptionDescription": "",
+            "scanLocation": {
+                "streetLines": [
+                    ""
+                ],
+                "city": "BRONX",
+                "stateOrProvinceCode": "NY",
+                "postalCode": "10454",
+                "countryCode": "US",
+                "residential": false,
+                "countryName": "United States"
+            },
+            "locationId": "JREA",
+            "locationType": "PICKUP_LOCATION",
+            "derivedStatusCode": "PU",
+            "derivedStatus": "Picked up"
+        },
+        {
+            "date": "2023-05-05T07:33:04-05:00",
+            "eventType": "OC",
+            "eventDescription": "Shipment information sent to FedEx",
+            "exceptionCode": "",
+            "exceptionDescription": "",
+            "scanLocation": {
+                "streetLines": [
+                    ""
+                ],
+                "residential": false
+            },
+            "locationType": "CUSTOMER",
+            "derivedStatusCode": "IN",
+            "derivedStatus": "Initiated"
+        }
+    ],
+    "availableNotifications": [
+        "ON_DELIVERY",
+        "ON_EXCEPTION",
+        "ON_ESTIMATED_DELIVERY"
+    ],
+    "deliveryDetails": {
+        "deliveryAttempts": "0",
+        "deliveryOptionEligibilityDetails": [
+            {
+                "option": "INDIRECT_SIGNATURE_RELEASE",
+                "eligibility": "POSSIBLY_ELIGIBLE"
+            },
+            {
+                "option": "REDIRECT_TO_HOLD_AT_LOCATION",
+                "eligibility": "POSSIBLY_ELIGIBLE"
+            },
+            {
+                "option": "REROUTE",
+                "eligibility": "POSSIBLY_ELIGIBLE"
+            },
+            {
+                "option": "RESCHEDULE",
+                "eligibility": "POSSIBLY_ELIGIBLE"
+            },
+            {
+                "option": "RETURN_TO_SHIPPER",
+                "eligibility": "POSSIBLY_ELIGIBLE"
+            },
+            {
+                "option": "DISPUTE_DELIVERY",
+                "eligibility": "POSSIBLY_ELIGIBLE"
+            },
+            {
+                "option": "SUPPLEMENT_ADDRESS",
+                "eligibility": "POSSIBLY_ELIGIBLE"
+            }
+        ]
+    },
+    "originLocation": {
+        "locationContactAndAddress": {
+            "address": {
+                "city": "BRONX",
+                "stateOrProvinceCode": "NY",
+                "countryCode": "US",
+                "residential": false,
+                "countryName": "United States"
+            }
+        },
+        "locationId": "JREA"
+    },
+    "destinationLocation": {
+        "locationContactAndAddress": {
+            "address": {
+                "city": "LOS ANGELES",
+                "stateOrProvinceCode": "CA",
+                "countryCode": "US",
+                "residential": false,
+                "countryName": "United States"
+            }
+        },
+        "locationType": ""
+    },
+    "lastUpdatedDestinationAddress": {
+        "city": "LOS ANGELES",
+        "stateOrProvinceCode": "CA",
+        "countryCode": "US",
+        "residential": false,
+        "countryName": "United States"
+    },
+    "serviceDetail": {
+        "type": "FEDEX_2_DAY",
+        "description": "FedEx 2Day",
+        "shortDescription": "P-2"
+    },
+    "standardTransitTimeWindow": {
+        "window": {
+            "ends": "2023-05-09T20:00:00-07:00"
+        }
+    },
+    "estimatedDeliveryTimeWindow": {
+        "window": {
+            "begins": "2023-05-08T09:10:00-07:00",
+            "ends": "2023-05-08T13:10:00-07:00"
+        },
+        "type": "TYPICAL"
+    },
+    "goodsClassificationCode": "",
+    "returnDetail": {}
+}
