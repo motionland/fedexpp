@@ -1,124 +1,139 @@
-"use client"
+"use client";
 
-import type React from "react"
+import type React from "react";
 
-import { useState, useRef, useEffect } from "react"
-import { Loader2 } from "lucide-react"
+import { useState, useRef, useEffect } from "react";
+import { Loader2 } from "lucide-react";
 
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { useToast } from "@/components/ui/use-toast"
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { useToast } from "@/components/ui/use-toast";
 import {
   type TrackingEntry,
   getCustomStatusTypes,
   type CustomStatusType,
-  addTrackingEntry, // Declare the variable here
-} from "../utils/storage"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { useUppy } from "../contexts/UppyContext"
-import { useRealtime } from "../contexts/RealtimeContext"
+} from "../utils/storage";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { useUppy } from "../contexts/UppyContext";
+import { useRealtime } from "../contexts/RealtimeContext";
 
-import "@uppy/core/dist/style.min.css"
-import "@uppy/dashboard/dist/style.min.css"
-import "@uppy/webcam/dist/style.min.css"
-import "@uppy/image-editor/dist/style.min.css"
-import { useFetch } from "@/hooks/useFetch"
-import { useRouter, useSearchParams } from "next/navigation"
-import ImageUploadDialog from "./ImageUploadDialog"
+import "@uppy/core/dist/style.min.css";
+import "@uppy/dashboard/dist/style.min.css";
+import "@uppy/webcam/dist/style.min.css";
+import "@uppy/image-editor/dist/style.min.css";
+import { useFetch } from "@/hooks/useFetch";
+import { useTrackingSubmit } from "@/hooks/useTrackingSubmit";
+import { useRouter, useSearchParams } from "next/navigation";
+import ImageUploadDialog from "./ImageUploadDialog";
 
-export default function TrackingForm() {
-  const [isLoading, setIsLoading] = useState(false)
-  const [error, setError] = useState<string | null>(null)
-  const { refetch } = useFetch("/api/fedex-tracking")
+interface Props {
+  refetch?: () => Promise<void>;
+}
 
-  const [trackingNumber, setTrackingNumber] = useState("")
-  const [status, setStatus] = useState<string>("Received")
-  const [statusQuery, setStatusQuery] = useState<string>("")
-  const [capturedImages, setCapturedImages] = useState<string[]>([])
-  const { toast } = useToast()
-  const [duplicate, setDuplicate] = useState<TrackingEntry | null>(null)
-  const [isInputDisabled, setIsInputDisabled] = useState(false)
-  const [isDialogOpen, setIsDialogOpen] = useState(false)
-  const [customStatusTypes, setCustomStatusTypes] = useState<CustomStatusType[]>([])
-  const inputRef = useRef<HTMLInputElement>(null)
-  const router = useRouter()
-  const searchParams = useSearchParams()
+export default function TrackingForm({ refetch: externalRefetch }: Props = {}) {
+  const { isLoading: submitLoading, setError } = useTrackingSubmit();
+  const [isLoading, setIsLoading] = useState(false);
+  const { refetch: internalRefetch } = useFetch("/api/fedex-tracking");
+  const refetch = externalRefetch || internalRefetch;
 
-  const uppy = useUppy()
-  const { emitPackageAdded } = useRealtime()
+  const [trackingNumber, setTrackingNumber] = useState("");
+  const [status, setStatus] = useState<string>("Received");
+  const [statusQuery, setStatusQuery] = useState<string>("");
+  const [capturedImages, setCapturedImages] = useState<string[]>([]);
+  const { toast } = useToast();
+  const [duplicate, setDuplicate] = useState<TrackingEntry | null>(null);
+  const [isInputDisabled, setIsInputDisabled] = useState(false);
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [customStatusTypes, setCustomStatusTypes] = useState<
+    CustomStatusType[]
+  >([]);
+  const inputRef = useRef<HTMLInputElement>(null);
+  const router = useRouter();
+  const searchParams = useSearchParams();
+
+  const uppy = useUppy();
+  const { emitPackageAdded } = useRealtime();
 
   useEffect(() => {
-    inputRef.current?.focus()
-    setCustomStatusTypes(getCustomStatusTypes())
-  }, [])
+    inputRef.current?.focus();
+    setCustomStatusTypes(getCustomStatusTypes());
+  }, []);
 
   useEffect(() => {
-    const params = new URLSearchParams(searchParams.toString())
+    const params = new URLSearchParams(searchParams.toString());
 
     if (statusQuery) {
-      params.set("status", statusQuery)
+      params.set("status", statusQuery);
     } else {
-      params.delete("status")
+      params.delete("status");
     }
 
-    router.replace(`?${params.toString()}`)
-  }, [statusQuery, router, searchParams])
+    router.replace(`?${params.toString()}`);
+  }, [statusQuery, router, searchParams]);
 
   const uploadBlobImagesId = async (blobUrls: string[], id: string) => {
     try {
-      const formData = new FormData()
-      formData.append("trackingId", id)
+      const formData = new FormData();
+      formData.append("trackingId", id);
 
       await Promise.all(
         blobUrls.map(async (blobUrl) => {
-          const response = await fetch(blobUrl)
-          const blob = await response.blob()
+          const response = await fetch(blobUrl);
+          const blob = await response.blob();
 
           const mimeToExtension: Record<string, string> = {
             "image/png": "png",
             "image/jpeg": "jpg",
             "image/webp": "webp",
             "image/gif": "gif",
-          }
+          };
 
-          const extension = mimeToExtension[blob.type] || "bin"
-          const uniqueFilename = `uploaded_${Date.now()}_${Math.random().toString(36).slice(2, 10)}.${extension}`
+          const extension = mimeToExtension[blob.type] || "bin";
+          const uniqueFilename = `uploaded_${Date.now()}_${Math.random()
+            .toString(36)
+            .slice(2, 10)}.${extension}`;
 
-          const file = new File([blob], uniqueFilename, { type: blob.type })
+          const file = new File([blob], uniqueFilename, { type: blob.type });
 
-          formData.append("file", file)
-        }),
-      )
+          formData.append("file", file);
+        })
+      );
 
       await fetch("/api/fedex-tracking/upload", {
         method: "POST",
         body: formData,
-      })
+      });
 
-      refetch()
+      refetch();
     } catch (error) {
-      console.error("Upload failed:", error)
+      console.error("Upload failed:", error);
     } finally {
       if (uppy) {
-        uppy.getFiles().forEach((file) => uppy.removeFile(file.id))
+        uppy.getFiles().forEach((file) => uppy.removeFile(file.id));
       }
     }
-  }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
+    e.preventDefault();
 
     if (!trackingNumber.trim()) {
       toast({
         title: "Error",
         description: "Please enter a tracking number.",
         variant: "destructive",
-      })
-      return
+      });
+      return;
     }
 
-    setIsLoading(true)
-    setError(null)
+    setIsLoading(true);
+    setError(null);
 
     try {
       // Check for duplicate and add tracking in a single optimized call
@@ -132,80 +147,140 @@ export default function TrackingForm() {
           status,
           checkDuplicate: true,
         }),
-      })
+      });
 
-      const data = await response.json()
+      const data = await response.json();
 
       if (!response.ok) {
         if (data.isDuplicate) {
-          setDuplicate(data.existingEntry)
-          setIsInputDisabled(true)
-          return
+          setDuplicate(data.existingEntry);
+          setIsInputDisabled(true);
+          return;
         }
-        throw new Error(data.error || "Failed to process tracking information")
+        throw new Error(data.error || "Failed to process tracking information");
       }
 
       // Handle successful submission
       if (data.tracking && capturedImages.length > 0) {
-        await uploadBlobImagesId(capturedImages, data.tracking.id)
+        await uploadBlobImagesId(capturedImages, data.tracking.id);
       }
 
-      resetForm()
-      refetch()
+      resetForm();
+
+      // Force refresh of tracking data with a small delay to ensure DB is updated
+      setTimeout(() => {
+        refetch();
+      }, 100);
 
       toast({
         title: "Tracking number added",
         description: `${trackingNumber} has been logged successfully.`,
-      })
+      });
 
-      emitPackageAdded()
+      emitPackageAdded();
     } catch (error) {
-      console.error("Error processing tracking info:", error)
-      setError(error instanceof Error ? error.message : "Failed to process tracking information. Please try again.")
+      console.error("Error processing tracking info:", error);
+      setError(
+        error instanceof Error
+          ? error.message
+          : "Failed to process tracking information. Please try again."
+      );
     } finally {
-      setIsLoading(false)
+      setIsLoading(false);
     }
-  }
+  };
 
   const resetForm = () => {
-    setTrackingNumber("")
-    setStatus("Received")
-    setCapturedImages([])
-    setDuplicate(null)
-    setIsInputDisabled(false)
+    setTrackingNumber("");
+    setStatus("Received");
+    setCapturedImages([]);
+    setDuplicate(null);
+    setIsInputDisabled(false);
     setTimeout(() => {
-      inputRef.current?.focus()
-    }, 0)
-    setIsLoading(false)
-  }
+      inputRef.current?.focus();
+    }, 0);
+    setIsLoading(false);
+  };
 
   const handleCaptureImages = () => {
     if (uppy) {
-      uppy.getFiles().forEach((file) => uppy.removeFile(file.id))
+      uppy.getFiles().forEach((file) => uppy.removeFile(file.id));
     }
-    setIsDialogOpen(true)
-  }
+    setIsDialogOpen(true);
+  };
 
-  const handleOverrideDuplicate = () => {
-    addTrackingEntry() // Use the declared variable here
-  }
+  const handleOverrideDuplicate = async () => {
+    setIsLoading(true);
+    setError(null);
+    setDuplicate(null);
+    setIsInputDisabled(false);
+
+    try {
+      // Force add the tracking number even if it's a duplicate
+      const response = await fetch("/api/fedex-tracking/submit", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          trackingNumber: trackingNumber.trim(),
+          status,
+          checkDuplicate: false, // Skip duplicate check
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || "Failed to process tracking information");
+      }
+
+      // Handle successful submission
+      if (data.tracking && capturedImages.length > 0) {
+        await uploadBlobImagesId(capturedImages, data.tracking.id);
+      }
+
+      resetForm();
+
+      // Force refresh of tracking data with a small delay to ensure DB is updated
+      setTimeout(() => {
+        refetch();
+      }, 100);
+
+      toast({
+        title: "Duplicate entry added",
+        description: `${trackingNumber} has been logged as a new entry (KAS ID: ${data.tracking.kasId}).`,
+      });
+
+      emitPackageAdded();
+    } catch (error) {
+      console.error("Error processing tracking info:", error);
+      setError(
+        error instanceof Error
+          ? error.message
+          : "Failed to process tracking information. Please try again."
+      );
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   const handleCancelDuplicate = () => {
-    resetForm()
-  }
+    resetForm();
+  };
 
   const handleUploadComplete = (imageUrls: string[]) => {
-    setCapturedImages((prev) => [...prev, ...imageUrls])
+    setCapturedImages((prev) => [...prev, ...imageUrls]);
     if (uppy) {
-      uppy.getFiles().forEach((file) => uppy.removeFile(file.id))
+      uppy.getFiles().forEach((file) => uppy.removeFile(file.id));
     }
-  }
+  };
 
   useEffect(() => {
     if (capturedImages.length > 0) {
-      inputRef.current?.focus()
+      inputRef.current?.focus();
     }
-  }, [capturedImages])
+  }, [capturedImages]);
 
   return (
     <div className="mb-8">
@@ -221,14 +296,19 @@ export default function TrackingForm() {
             ref={inputRef}
           />
           <Select
-            value={customStatusTypes.find((statusType) => statusType.id === status)?.name}
+            value={
+              customStatusTypes.find((statusType) => statusType.id === status)
+                ?.name
+            }
             onValueChange={(value) => {
-              const selectedStatus = customStatusTypes.find((statusType) => statusType.name === value)
+              const selectedStatus = customStatusTypes.find(
+                (statusType) => statusType.name === value
+              );
 
               if (selectedStatus) {
-                setStatusQuery(selectedStatus.id)
+                setStatusQuery(selectedStatus.id);
               } else {
-                setStatusQuery("")
+                setStatusQuery("");
               }
             }}
             disabled={isInputDisabled}
@@ -237,11 +317,13 @@ export default function TrackingForm() {
               <SelectValue placeholder="Select status" />
             </SelectTrigger>
             <SelectContent>
-              {[...[{ id: 0, name: "All" }], ...customStatusTypes].map((statusType) => (
-                <SelectItem key={statusType.id} value={statusType.name}>
-                  {statusType.name}
-                </SelectItem>
-              ))}
+              {[...[{ id: 0, name: "All" }], ...customStatusTypes].map(
+                (statusType) => (
+                  <SelectItem key={statusType.id} value={statusType.name}>
+                    {statusType.name}
+                  </SelectItem>
+                )
+              )}
             </SelectContent>
           </Select>
           <Button type="submit" disabled={isInputDisabled}>
@@ -254,7 +336,11 @@ export default function TrackingForm() {
               "Log"
             )}
           </Button>
-          <Button type="button" onClick={handleCaptureImages} disabled={isInputDisabled}>
+          <Button
+            type="button"
+            onClick={handleCaptureImages}
+            disabled={isInputDisabled}
+          >
             Capture Images
           </Button>
         </div>
@@ -273,20 +359,36 @@ export default function TrackingForm() {
       </form>
       {duplicate && (
         <div className="mt-4 p-4 border border-yellow-500 bg-yellow-50 rounded-md">
-          <p className="text-yellow-700">
-            Warning: This tracking number has already been scanned on {new Date(duplicate.timestamp).toLocaleString()}.
+          <h4 className="font-semibold text-yellow-800 mb-2">
+            Duplicate Tracking Number Detected
+          </h4>
+          <p className="text-yellow-700 mb-2">
+            This tracking number <strong>{duplicate.number}</strong> was already
+            logged on {new Date(duplicate.timestamp).toLocaleString()}.
           </p>
-          <div className="mt-2 flex gap-2">
+          <p className="text-sm text-yellow-600 mb-3">
+            KAS ID: <strong>{duplicate.kasId}</strong> | Status:{" "}
+            <strong>{duplicate.fedexDeliveryStatus}</strong>
+          </p>
+          <div className="flex gap-2">
             <Button onClick={handleCancelDuplicate} variant="outline">
               Cancel
             </Button>
             <Button onClick={handleOverrideDuplicate} variant="destructive">
-              Override and Add Anyway
+              Add as New Entry
             </Button>
           </div>
+          <p className="text-xs text-yellow-600 mt-2">
+            "Add as New Entry" will create a separate record for this tracking
+            number.
+          </p>
         </div>
       )}
-      <ImageUploadDialog open={isDialogOpen} onOpenChange={setIsDialogOpen} onUploadComplete={handleUploadComplete} />
+      <ImageUploadDialog
+        open={isDialogOpen}
+        onOpenChange={setIsDialogOpen}
+        onUploadComplete={handleUploadComplete}
+      />
     </div>
-  )
+  );
 }

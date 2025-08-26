@@ -25,7 +25,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Trash2, ImagePlus } from "lucide-react";
+import { Trash2, ImagePlus, ChevronLeft, ChevronRight } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
 
 import { useUppy } from "../contexts/UppyContext";
@@ -41,11 +41,27 @@ import { FedexTracks } from "./FedexTracks";
 import FedexTracksPage from "@/app/dashboard/fedex-tracks/page";
 import Link from "next/link";
 
+interface PaginationMeta {
+  page: number;
+  limit: number;
+  totalCount: number;
+  totalPages: number;
+  hasNextPage: boolean;
+  hasPrevPage: boolean;
+}
+
+interface PaginatedResponse {
+  data: TrackingEntry[];
+  pagination: PaginationMeta;
+}
+
 interface Props {
-  data: TrackingEntry[] | undefined;
+  data: PaginatedResponse | undefined;
   isLoading: boolean;
   refetch: () => void;
   searchQuery: string;
+  currentPage: number;
+  onPageChange: (page: number) => void;
 }
 
 export default function TrackingList({
@@ -53,52 +69,45 @@ export default function TrackingList({
   isLoading,
   refetch,
   searchQuery,
+  currentPage,
+  onPageChange,
 }: Props) {
-  const [selectedEntry, setSelectedEntry] = useState<TrackingEntry | null>(
+  const [selectedTrackingId, setSelectedTrackingId] = useState<string | null>(
     null
   );
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [customStatusTypes, setCustomStatusTypes] = useState<
     CustomStatusType[]
   >([]);
-  const [filterData, setFilterData] = useState<TrackingEntry[]>([]);
-  const [displayedItems, setDisplayedItems] = useState<TrackingEntry[]>([]);
-  const [page, setPage] = useState(1);
-  const itemsPerPage = 10;
+  const [filteredData, setFilteredData] = useState<TrackingEntry[]>([]);
   const pathname = usePathname();
   const { toast } = useToast();
   const uppy = useUppy();
 
-  // Add intersection observer for infinite scroll
   useEffect(() => {
-    const observer = new IntersectionObserver(
-      (entries) => {
-        if (entries[0].isIntersecting && !isLoading && filterData.length > displayedItems.length) {
-          setPage((prevPage) => prevPage + 1);
-        }
-      },
-      { threshold: 1.0 }
-    );
-
-    const loadMoreTrigger = document.getElementById('load-more-trigger');
-    if (loadMoreTrigger) {
-      observer.observe(loadMoreTrigger);
-    }
-
-    return () => {
-      if (loadMoreTrigger) {
-        observer.unobserve(loadMoreTrigger);
-      }
+    const loadCustomStatusTypes = () => {
+      setCustomStatusTypes(getCustomStatusTypes());
     };
-  }, [isLoading, filterData, displayedItems]);
+    loadCustomStatusTypes();
+  }, []);
 
-  // Update displayed items when page or filterData changes
+  // Filter data based on search query
   useEffect(() => {
-    if (filterData) {
-      const newItems = filterData.slice(0, page * itemsPerPage);
-      setDisplayedItems(newItems);
+    if (data?.data) {
+      if (searchQuery.trim() === "") {
+        setFilteredData(data.data);
+      } else {
+        const filtered = data.data.filter(
+          (entry) =>
+            entry.trackingNumber
+              ?.toLowerCase()
+              .includes(searchQuery.toLowerCase()) ||
+            entry.kasId?.toLowerCase().includes(searchQuery.toLowerCase())
+        );
+        setFilteredData(filtered);
+      }
     }
-  }, [page, filterData]);
+  }, [data, searchQuery]);
 
   const uploadBlobImagesId = async (blobUrls: string[], id: string) => {
     try {
@@ -142,46 +151,6 @@ export default function TrackingList({
       }
     }
   };
-
-  useEffect(() => {
-    const loadCustomStatusTypes = () => {
-      setCustomStatusTypes(getCustomStatusTypes());
-    };
-    loadCustomStatusTypes();
-    if (!searchQuery) {
-      setFilterData(data || []);
-      setPage(1); // Reset page when search query changes
-    } else {
-      const lowerQuery = searchQuery.toLowerCase();
-
-      const filtered = data?.filter((entry) => {
-        const trackingNumber = entry.trackingNumber?.toLowerCase() || "";
-        const status = typeof entry.status === "string" ? entry.status : "";
-        const fedexStatus = entry.fedexDeliveryStatus?.toLowerCase() || "";
-        const kasId = entry.kasId?.toLowerCase() || "";
-        const destination = entry.destination?.toLowerCase() || "";
-        const origin = entry.origin?.toLowerCase() || "";
-        const transitTime = entry.transitTime?.toLowerCase() || "";
-
-        const shippingDate = entry.shippingDate
-          ? new Date(entry.shippingDate).toISOString().split("T")[0]
-          : "";
-
-        return (
-          trackingNumber.includes(lowerQuery) ||
-          status.includes(lowerQuery) ||
-          fedexStatus.includes(lowerQuery) ||
-          kasId.includes(lowerQuery) ||
-          destination.includes(lowerQuery) ||
-          origin.includes(lowerQuery) ||
-          transitTime.includes(lowerQuery) ||
-          shippingDate.includes(lowerQuery)
-        );
-      }) || [];
-      setFilterData(filtered);
-      setPage(1); // Reset page when search query changes
-    }
-  }, [searchQuery, data]);
 
   const handleRemove = (id: string) => {
     let c = confirm("Are you sure you want to remove this tracking number?");
@@ -237,26 +206,29 @@ export default function TrackingList({
   };
 
   const calculationTransittime = (entry: TrackingEntry): string => {
-    const pickupEvent = entry.history.find((history) => history.status === "Picked up")
-    const deliveryEvent = entry.history.find((history) => history.status === "Delivered")
+    const pickupEvent = entry.history.find(
+      (history) => history.status === "Picked up"
+    );
+    const deliveryEvent = entry.history.find(
+      (history) => history.status === "Delivered"
+    );
     if (!pickupEvent || !deliveryEvent) {
-      return entry.transitTime || "N/A"
+      return entry.transitTime || "N/A";
     }
 
-    const pickeupDate = getCSTDate(new Date(pickupEvent.date))
-    const deliveryDate = getCSTDate(new Date(deliveryEvent.date))
+    const pickeupDate = getCSTDate(new Date(pickupEvent.date));
+    const deliveryDate = getCSTDate(new Date(deliveryEvent.date));
 
-
-    const diffMs = deliveryDate.getTime() - pickeupDate.getTime()
+    const diffMs = deliveryDate.getTime() - pickeupDate.getTime();
     const days = Math.floor(diffMs / (1000 * 60 * 60 * 24));
     const hours = Math.floor((diffMs / (1000 * 60 * 60)) % 24);
     const minutes = Math.floor((diffMs / (1000 * 60)) % 60);
 
-    return `${days}d ${hours}h ${minutes}m`
-  }
+    return `${days}d ${hours}h ${minutes}m`;
+  };
 
   const handleAddImage = (entry: TrackingEntry) => {
-    setSelectedEntry(entry);
+    setSelectedTrackingId(entry.id);
     if (uppy) {
       uppy.getFiles().forEach((file) => uppy.removeFile(file.id));
     }
@@ -264,8 +236,8 @@ export default function TrackingList({
   };
 
   const handleUploadComplete = (imageUrls: string[]) => {
-    if (selectedEntry) {
-      uploadBlobImagesId(imageUrls, selectedEntry.id);
+    if (selectedTrackingId) {
+      uploadBlobImagesId(imageUrls, selectedTrackingId);
     }
     if (uppy) {
       uppy.getFiles().forEach((file) => uppy.removeFile(file.id));
@@ -301,7 +273,7 @@ export default function TrackingList({
           </TableHeader>
 
           <TableBody>
-            {displayedItems.map((entry) => (
+            {filteredData.map((entry) => (
               <TableRow key={entry.id}>
                 <TableCell>{entry.kasId}</TableCell>
                 {pathname === "/" && (
@@ -315,7 +287,12 @@ export default function TrackingList({
                   </TableCell>
                 )}
                 <TableCell className="truncate">
-                  <Link href={`https://www.fedex.com/fedextrack/?trknbr=${entry.trackingNumber}`} target="_blank">{entry.trackingNumber?.slice(-12)}</Link>
+                  <Link
+                    href={`https://www.fedex.com/fedextrack/?trknbr=${entry.trackingNumber}`}
+                    target="_blank"
+                  >
+                    {entry.trackingNumber?.slice(-12)}
+                  </Link>
                 </TableCell>
                 <TableCell>
                   <Select
@@ -355,9 +332,7 @@ export default function TrackingList({
                             .substring(0, 16)
                         : "N/A"}
                     </TableCell>
-                    <TableCell>
-                      {calculationTransittime(entry)}
-                    </TableCell>
+                    <TableCell>{calculationTransittime(entry)}</TableCell>
                     <TableCell>{entry.destination || "N/A"}</TableCell>
                     <TableCell>{entry.origin || "N/A"}</TableCell>
                   </>
@@ -390,7 +365,7 @@ export default function TrackingList({
             ))}
           </TableBody>
         </Table>
-        {filterData.length === 0 && (
+        {filteredData.length === 0 && (
           <p className="mt-4 text-center text-muted-foreground">
             No packages logged yet today.
           </p>
@@ -400,9 +375,73 @@ export default function TrackingList({
             <div className="w-12 h-12 border-b-2 rounded-full animate-spin border-primary-foreground"></div>
           </div>
         )}
-        {/* Load more trigger element */}
-        {!isLoading && filterData.length > displayedItems.length && (
-          <div id="load-more-trigger" className="h-10 w-full" />
+        {/* Pagination Controls */}
+        {data?.pagination && data.pagination.totalPages > 1 && (
+          <div className="flex items-center justify-between mt-6">
+            <div className="text-sm text-muted-foreground">
+              Showing {(currentPage - 1) * data.pagination.limit + 1} to{" "}
+              {Math.min(
+                currentPage * data.pagination.limit,
+                data.pagination.totalCount
+              )}{" "}
+              of {data.pagination.totalCount} entries
+            </div>
+
+            <div className="flex items-center space-x-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => onPageChange(currentPage - 1)}
+                disabled={!data.pagination.hasPrevPage || isLoading}
+              >
+                <ChevronLeft className="h-4 w-4" />
+                Previous
+              </Button>
+
+              <div className="flex items-center space-x-1">
+                {Array.from(
+                  { length: Math.min(5, data.pagination.totalPages) },
+                  (_, i) => {
+                    let pageNum: number;
+                    if (data.pagination.totalPages <= 5) {
+                      pageNum = i + 1;
+                    } else if (currentPage <= 3) {
+                      pageNum = i + 1;
+                    } else if (currentPage >= data.pagination.totalPages - 2) {
+                      pageNum = data.pagination.totalPages - 4 + i;
+                    } else {
+                      pageNum = currentPage - 2 + i;
+                    }
+
+                    return (
+                      <Button
+                        key={pageNum}
+                        variant={
+                          currentPage === pageNum ? "default" : "outline"
+                        }
+                        size="sm"
+                        onClick={() => onPageChange(pageNum)}
+                        disabled={isLoading}
+                        className="w-8 h-8 p-0"
+                      >
+                        {pageNum}
+                      </Button>
+                    );
+                  }
+                )}
+              </div>
+
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => onPageChange(currentPage + 1)}
+                disabled={!data.pagination.hasNextPage || isLoading}
+              >
+                Next
+                <ChevronRight className="h-4 w-4" />
+              </Button>
+            </div>
+          </div>
         )}
       </div>
 
