@@ -20,7 +20,7 @@ export interface TrackingEntry {
   trackingNumber?: string;
   timestamp: string;
   imageData: string[];
-  status: CustomStatusType;
+  status: CustomStatusType | null;
   statusId?: string;
   deliveryDate: string;
   shippingDate: string;
@@ -129,7 +129,8 @@ export async function removeTrackingNumber(id: string) {
 
 export async function getTrackingEntries(): Promise<TrackingEntry[]> {
   try {
-    const response = await fetch("/api/fedex-tracking", {
+    // Fetch with a large limit to get all tracking entries for historical reports
+    const response = await fetch("/api/fedex-tracking?limit=1000", {
       method: "GET",
       headers: {
         "Content-Type": "application/json",
@@ -140,13 +141,26 @@ export async function getTrackingEntries(): Promise<TrackingEntry[]> {
       throw new Error("Failed to fetch tracking information");
     }
 
-    let data = await response.json();
+    let responseData = await response.json();
+
+    // Extract the data array from the paginated response
+    let data = responseData.data || responseData;
 
     data = data.map((r: any) => {
       return {
         ...r,
         number: r.trackingNumber,
         imageData: r.capturedImages ? JSON.parse(r.capturedImages) : [],
+        // Map the status object properly for the interface
+        status: r.status
+          ? {
+              id: r.status.id.toString(), // Convert to string to match CustomStatusType
+              name: r.status.name,
+              description: r.status.description || r.status.name,
+            }
+          : null,
+        // Ensure statusId is a string for consistency
+        statusId: r.statusId ? r.statusId.toString() : undefined,
       };
     });
     return data;
@@ -200,10 +214,10 @@ export function getCustomStatusTypes(): CustomStatusType[] {
   return storedTypes
     ? JSON.parse(storedTypes)
     : [
-        { id: 1, name: "Pending" },
-        { id: 2, name: "In Transit" },
-        { id: 3, name: "Received" },
-        { id: 4, name: "Delivered" },
+        { id: "1", name: "Pending" },
+        { id: "2", name: "In Transit" },
+        { id: "3", name: "Received" },
+        { id: "4", name: "Delivered" },
       ];
 }
 
@@ -352,17 +366,29 @@ export async function getHistoricalScanReports(
     date.setDate(date.getDate() - i);
     const formattedDate = date.toISOString().split("T")[0];
 
-    const dailyEntries = entries.filter((entry) =>
-      entry.timestamp.startsWith(formattedDate)
-    );
+    // Filter entries by date, handling both string and Date timestamp formats
+    const dailyEntries = entries.filter((entry) => {
+      if (!entry.timestamp) return false;
 
-    reports.push({
-      date: formattedDate,
-      scannedItems: dailyEntries.length,
-      trackingDetails: dailyEntries.map((entry) => ({
-        ...entry,
-      })),
+      // Handle different timestamp formats
+      let entryDate: string;
+      if (typeof entry.timestamp === "string") {
+        entryDate = entry.timestamp.split("T")[0];
+      } else {
+        entryDate = new Date(entry.timestamp).toISOString().split("T")[0];
+      }
+
+      return entryDate === formattedDate;
     });
+
+    // Only include reports that have data or if it's today
+    if (dailyEntries.length > 0 || i === 0) {
+      reports.push({
+        date: formattedDate,
+        scannedItems: dailyEntries.length,
+        trackingDetails: dailyEntries,
+      });
+    }
   }
 
   return reports;

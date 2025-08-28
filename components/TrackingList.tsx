@@ -313,7 +313,7 @@ export default function TrackingList({
                 </TableCell>
                 <TableCell>
                   <Select
-                    defaultValue={entry.statusId}
+                    defaultValue={entry.statusId?.toString()}
                     onValueChange={(value) =>
                       handleStatusChange(entry.id, value)
                     }

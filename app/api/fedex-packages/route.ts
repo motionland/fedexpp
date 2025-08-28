@@ -145,6 +145,52 @@ export async function POST(request: Request) {
   }
 }
 
+export async function PUT(request: Request) {
+  try {
+    const { id, statusId, ...otherUpdates } = await request.json();
+
+    if (!id) {
+      return NextResponse.json(
+        { error: "Tracking ID is required" },
+        { status: 400 }
+      );
+    }
+
+    // Prepare the update data
+    const updateData: any = { ...otherUpdates };
+
+    // Convert statusId from string to number if provided
+    if (statusId !== undefined) {
+      const statusIdNum = parseInt(statusId);
+      if (isNaN(statusIdNum)) {
+        return NextResponse.json(
+          { error: "Invalid status ID" },
+          { status: 400 }
+        );
+      }
+      updateData.statusId = statusIdNum;
+    }
+
+    const updatedTracking = await prisma.tracking.update({
+      where: { id: parseInt(id) },
+      data: updateData,
+      include: {
+        status: true,
+        history: true,
+        images: true,
+      },
+    });
+
+    return NextResponse.json(updatedTracking);
+  } catch (error) {
+    console.error("Error updating tracking data:", error);
+    return NextResponse.json(
+      { error: "Failed to update tracking data" },
+      { status: 500 }
+    );
+  }
+}
+
 function generateKasId(): string {
   const prefix = "K";
   const randomPart = Math.random().toString().slice(2, 11); // 9 digits
