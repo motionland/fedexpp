@@ -257,6 +257,7 @@ export default function TrackingList({
         <Table className="whitespace-normal table-fixed">
           <TableHeader>
             <TableRow>
+              <TableHead>Date/Time</TableHead>
               <TableHead>KAS ID</TableHead>
               {pathname === "/" ? <TableHead>TimeStamp</TableHead> : null}
               <TableHead>Tracking Number</TableHead>
@@ -279,6 +280,18 @@ export default function TrackingList({
           <TableBody>
             {filteredData.map((entry) => (
               <TableRow key={entry.id}>
+                <TableCell>
+                  {entry.timestamp
+                    ? new Date(entry.timestamp).toLocaleString("en-US", {
+                        year: "numeric",
+                        month: "2-digit",
+                        day: "2-digit",
+                        hour: "2-digit",
+                        minute: "2-digit",
+                        hour12: true,
+                      })
+                    : "N/A"}
+                </TableCell>
                 <TableCell>{entry.kasId}</TableCell>
                 {pathname === "/" && (
                   <TableCell>
