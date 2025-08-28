@@ -1,49 +1,47 @@
-"use client"
+"use client";
 
-import { useState, useEffect } from "react"
-import { getTrackingEntries } from "../utils/storage"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { CheckCircle2 } from "lucide-react"
-import { useRealtimeListener } from "../contexts/RealtimeContext"
-import { TrackingEntry } from "@/utils/storage"
+import { useState, useEffect } from "react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { CheckCircle2 } from "lucide-react";
+import { useRealtimeListener } from "../contexts/RealtimeContext";
 
-interface Props {
-  data: TrackingEntry[] | undefined,
-  isLoading: boolean
-}
-
-export default function DateCounter({ data = [], isLoading }: Props) {
-  const [count, setCount] = useState(0)
+export default function DateCounter() {
+  const [count, setCount] = useState(0);
+  const [isLoading, setIsLoading] = useState(true);
   const today = new Date().toLocaleDateString("en-US", {
     weekday: "long",
     year: "numeric",
     month: "long",
     day: "numeric",
-  })
+  });
 
-  const updateCount = async () => {
-    const todayStart = new Date();
-    todayStart.setHours(0, 0, 0, 0);
-  
-    const todayCount = data.filter((entry) => 
-      new Date(entry.timestamp) >= todayStart
-    ).length;
-  
-    setCount(todayCount);
+  const fetchTodayCount = async () => {
+    try {
+      setIsLoading(true);
+      const response = await fetch("/api/fedex-tracking/today-count");
+      if (!response.ok) throw new Error("Failed to fetch count");
+      const data = await response.json();
+      setCount(data.count || 0);
+    } catch (error) {
+      console.error("Error fetching today count:", error);
+      setCount(0);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   useRealtimeListener(() => {
-    updateCount()
-  })
+    fetchTodayCount();
+  });
 
   useEffect(() => {
-    updateCount()
-    window.addEventListener("storage", updateCount)
+    fetchTodayCount();
+    window.addEventListener("storage", fetchTodayCount);
 
     return () => {
-      window.removeEventListener("storage", updateCount)
-    }
-  }, [isLoading, data])
+      window.removeEventListener("storage", fetchTodayCount);
+    };
+  }, []);
 
   return (
     <Card>
@@ -60,6 +58,5 @@ export default function DateCounter({ data = [], isLoading }: Props) {
         </div>
       </CardContent>
     </Card>
-  )
+  );
 }
-

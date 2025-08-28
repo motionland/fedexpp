@@ -4,7 +4,6 @@ import DateCounter from "@/components/DateCounter";
 import dynamic from "next/dynamic";
 import { UppyProvider } from "@/contexts/UppyContext";
 import { useFetch } from "@/hooks/useFetch";
-import { TrackingEntry } from "@/utils/storage";
 import { useSearchParams } from "next/navigation";
 import TrackingList from "@/components/TrackingList";
 import TrackingForm from "@/components/TrackingForm";
@@ -15,11 +14,23 @@ import TrackingForm from "@/components/TrackingForm";
 //   ssr: false,
 // });
 
+interface PaginatedResponse {
+  data: any[];
+  pagination: {
+    page: number;
+    limit: number;
+    totalCount: number;
+    totalPages: number;
+    hasNextPage: boolean;
+    hasPrevPage: boolean;
+  };
+}
+
 export default function Home() {
   const searchParams = useSearchParams();
   const status = searchParams.get("status");
 
-  const { data, isLoading, refetch } = useFetch<TrackingEntry[]>(
+  const { data, isLoading, refetch } = useFetch<PaginatedResponse>(
     `/api/fedex-tracking${status ? `?status=${status}` : ""}`
   );
 
@@ -32,7 +43,7 @@ export default function Home() {
       </header>
 
       <div className="flex-1 container py-8 space-y-8">
-        <DateCounter data={data} isLoading={isLoading} />
+        <DateCounter />
         <UppyProvider>
           <TrackingForm />
         </UppyProvider>
@@ -42,6 +53,8 @@ export default function Home() {
             data={data}
             isLoading={isLoading}
             refetch={refetch}
+            currentPage={1}
+            onPageChange={() => {}}
           />
         </UppyProvider>
       </div>

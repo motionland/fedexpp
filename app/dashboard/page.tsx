@@ -1,20 +1,14 @@
 "use client";
 
 import DateCounter from "@/components/DateCounter";
-import dynamic from "next/dynamic";
 import { UppyProvider } from "@/contexts/UppyContext";
 import { usePaginatedFetch } from "@/hooks/useFetch";
-import { TrackingEntry } from "@/utils/storage";
 import { useSearchParams } from "next/navigation";
 import { useState, useEffect } from "react";
 import SearchBar from "@/components/SearchBar";
-
-const TrackingForm = dynamic(() => import("@/components/TrackingForm"), {
-  ssr: false,
-});
-const TrackingList = dynamic(() => import("@/components/TrackingList"), {
-  ssr: false,
-});
+import TrackingForm from "@/components/TrackingForm";
+import TrackingList from "@/components/TrackingList";
+import { TrackingEntry } from "@/utils/storage";
 
 interface PaginationMeta {
   page: number;
@@ -61,7 +55,7 @@ export default function Home() {
       </header>
 
       <div className="flex-1 container py-8 space-y-8">
-        <DateCounter data={data?.data} isLoading={isLoading} />
+        <DateCounter />
         <UppyProvider>
           <TrackingForm refetch={refetch} />
         </UppyProvider>

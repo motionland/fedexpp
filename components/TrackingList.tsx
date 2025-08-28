@@ -29,6 +29,7 @@ import { Trash2, ImagePlus, ChevronLeft, ChevronRight } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
 
 import { useUppy } from "../contexts/UppyContext";
+import { useRealtime } from "../contexts/RealtimeContext";
 import ImageGallery from "@/components/ImageGallery";
 
 import "@uppy/core/dist/style.min.css";
@@ -83,6 +84,7 @@ export default function TrackingList({
   const pathname = usePathname();
   const { toast } = useToast();
   const uppy = useUppy();
+  const { emitPackageDeleted } = useRealtime();
 
   useEffect(() => {
     const loadCustomStatusTypes = () => {
@@ -163,6 +165,8 @@ export default function TrackingList({
           description: "The tracking number has been deleted from the log.",
         });
 
+        // Emit realtime event to update DateCounter
+        emitPackageDeleted();
         refetch();
       })
       .catch((error) => {
