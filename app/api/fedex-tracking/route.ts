@@ -123,8 +123,25 @@ export async function GET(req: Request) {
   const limit = parseInt(url.searchParams.get("limit") || "20");
   const offset = (page - 1) * limit;
 
+  // New parameters for date range filtering
+  const fromDate = url.searchParams.get("from");
+  const toDate = url.searchParams.get("to");
+  const includeImages = url.searchParams.get("includeImages") === "true";
+
   try {
-    const whereCondition = status ? { statusId: parseInt(status) } : {};
+    let whereCondition: any = {};
+
+    if (status) {
+      whereCondition.statusId = parseInt(status);
+    }
+
+    // Add date range filtering
+    if (fromDate && toDate) {
+      whereCondition.timestamp = {
+        gte: new Date(fromDate),
+        lte: new Date(toDate),
+      };
+    }
 
     // Get total count for pagination metadata
     const totalCount = await prisma.tracking.count({
@@ -138,24 +155,30 @@ export async function GET(req: Request) {
           orderBy: { date: "desc" },
         },
         status: true,
-        images: true,
+        images: includeImages,
       },
       orderBy: { timestamp: "desc" },
       skip: offset,
       take: limit,
     });
 
-    const processedPackages = await Promise.all(
-      packages.map(async (pkg: { images: any[] }) => ({
-        ...pkg,
-        images: await Promise.all(
-          pkg.images.map(async (image) => ({
-            ...image,
-            url: await getObjectLink(image.url),
-          }))
-        ),
-      }))
-    );
+    let processedPackages;
+
+    if (includeImages) {
+      processedPackages = await Promise.all(
+        packages.map(async (pkg: { images: any[] }) => ({
+          ...pkg,
+          images: await Promise.all(
+            pkg.images.map(async (image) => ({
+              ...image,
+              url: await getObjectLink(image.url),
+            }))
+          ),
+        }))
+      );
+    } else {
+      processedPackages = packages;
+    }
 
     return NextResponse.json({
       data: processedPackages,
