@@ -35,6 +35,7 @@ import {
 } from "@/components/ui/tooltip";
 import { useTheme } from "next-themes";
 import { useAuth } from "@/contexts/AuthContext";
+import { usePermissions } from "@/hooks/usePermissions";
 import type React from "react";
 
 type SidebarContextType = {
@@ -88,45 +89,45 @@ const menuItems = [
     title: "Overview",
     href: "/",
     icon: Package,
-    roles: ["admin", "manager", "user"],
+    requiredPermission: "view_dashboard",
   },
   {
     title: "Tracking List",
     href: "/dashboard/tracking",
     icon: ClipboardList,
     badge: "3",
-    roles: ["admin", "manager", "user"],
+    requiredPermission: "view_dashboard", // Maps to view_dashboard permission
   },
   {
     title: "Reports",
     href: "/dashboard/reports",
     icon: BarChart,
-    roles: ["admin", "manager"],
+    requiredPermission: "view_reports",
   },
   {
     title: "Team",
     href: "/dashboard/team",
     icon: Users,
     badge: "New",
-    roles: ["admin"],
+    requiredPermission: "manage_users",
   },
   {
     title: "Settings",
     href: "/dashboard/settings",
     icon: Settings,
-    roles: ["admin"],
+    requiredPermission: "edit_settings", // Maps to existing edit_settings permission
   },
   {
     title: "Help",
     href: "/dashboard/help",
     icon: HelpCircle,
-    roles: ["admin", "manager", "user"],
+    requiredPermission: "view_dashboard", // Maps to view_dashboard permission
   },
   {
     title: "Historical Reports",
     href: "/dashboard/historical-reports",
     icon: FileText,
-    roles: ["admin", "manager"],
+    requiredPermission: "view_reports",
   },
 ];
 
@@ -135,6 +136,7 @@ export function Sidebar() {
   const { isCollapsed, toggleSidebar } = useSidebar();
   const { setTheme, theme } = useTheme();
   const { user, logout } = useAuth();
+  const { hasPermission } = usePermissions();
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
@@ -148,9 +150,9 @@ export function Sidebar() {
   if (!mounted) return null;
   if (!user) return <div>Loading sidebar...</div>; // Menampilkan loading jika user belum tersedia
 
-  // 🔥 Filter menu hanya untuk role yang diizinkan
+  // 🔥 Filter menu based on user permissions
   const filteredMenuItems = menuItems.filter((item) =>
-    item.roles.includes(user.role)
+    hasPermission(item.requiredPermission)
   );
 
   return (

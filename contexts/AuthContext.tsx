@@ -12,14 +12,28 @@ import {
 } from "@/utils/storage";
 import { doLogin, doLogout } from "@/app/api/auth/action";
 
+type Permission = {
+  id: number;
+  name: string;
+  description: string;
+};
+
+type UserRole = {
+  id: number;
+  name: string;
+  permissions: Permission[];
+};
+
 type User = {
   id: string;
   username: string;
   role: string;
+  roleData?: UserRole;
 };
 
 type AuthContextType = {
   user: User | null;
+  isLoading: boolean;
   login: (username: string, pin: string) => Promise<void>;
   loginWithEmail: (email: string, verificationCode: string) => Promise<void>;
   logout: () => void;
@@ -37,6 +51,23 @@ export const useAuth = () => {
   return context;
 };
 
+const fetchUserRoleData = async (
+  roleName: string
+): Promise<UserRole | undefined> => {
+  try {
+    const response = await fetch("/api/role");
+    if (response.ok) {
+      const roles: UserRole[] = await response.json();
+      return roles.find(
+        (role) => role.name.toLowerCase() === roleName.toLowerCase()
+      );
+    }
+  } catch (error) {
+    console.error("Failed to fetch role data:", error);
+  }
+  return undefined;
+};
+
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
   children,
 }) => {
@@ -48,14 +79,41 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
 
     return null;
   });
+  const [isLoading, setIsLoading] = useState(true);
   const router = useRouter();
 
   useEffect(() => {
-    // Check for existing session
-    const storedUser = localStorage.getItem("user");
-    if (storedUser) {
-      setUser(JSON.parse(storedUser));
-    }
+    const initializeAuth = async () => {
+      setIsLoading(true);
+
+      // Check for existing session
+      const storedUser = localStorage.getItem("user");
+      if (storedUser) {
+        const parsedUser = JSON.parse(storedUser);
+        setUser(parsedUser);
+
+        // If the stored user doesn't have roleData, fetch it
+        if (parsedUser && !parsedUser.roleData) {
+          try {
+            const roleData = await fetchUserRoleData(parsedUser.role);
+            if (roleData) {
+              const updatedUser = { ...parsedUser, roleData };
+              setUser(updatedUser);
+              localStorage.setItem("user", JSON.stringify(updatedUser));
+            }
+          } catch (error) {
+            console.error(
+              "Failed to fetch role data on initialization:",
+              error
+            );
+          }
+        }
+      }
+
+      setIsLoading(false);
+    };
+
+    initializeAuth();
 
     // Initialize default users if they don't exist
     // const users = getUserByUsername("admin")
@@ -73,10 +131,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     const user = await doLogin({ email: username, pin, password: "" });
 
     if (user && user.pin === pin) {
+      const roleData = await fetchUserRoleData(user.role);
       const loggedInUser: User = {
         id: user.id.toString(),
         username: user.email,
         role: user.role,
+        roleData,
       };
       setUser(loggedInUser);
 
@@ -91,10 +151,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     if (verifyCode(email, verificationCode)) {
       const user = getUserByEmail(email);
       if (user) {
+        const roleData = await fetchUserRoleData(user.role);
         const loggedInUser: User = {
           id: user.id,
           username: user.username,
           role: user.role,
+          roleData,
         };
         setUser(loggedInUser);
         localStorage.setItem("user", JSON.stringify(loggedInUser));
@@ -115,7 +177,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
   };
 
   return (
-    <AuthContext.Provider value={{ user, login, loginWithEmail, logout }}>
+    <AuthContext.Provider
+      value={{ user, isLoading, login, loginWithEmail, logout }}
+    >
       {children}
     </AuthContext.Provider>
   );

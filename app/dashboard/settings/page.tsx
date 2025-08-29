@@ -38,22 +38,22 @@ export default function SettingsPage() {
 
   const handleAddStatusType = async () => {
     if (!newStatusType.trim()) return;
-  
+
     try {
-      const response = await fetch('/api/status', {
+      const response = await fetch("/api/status", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({ name: newStatusType.trim() }),
       });
-  
+
       const data = await response.json();
-  
+
       if (!response.ok) {
         throw new Error(data.message || "Failed to add status type");
       }
-  
+
       const updatedStatusTypes = [
         ...statusTypes,
         { id: data.statusPost.id, name: data.statusPost.name },
@@ -61,12 +61,11 @@ export default function SettingsPage() {
       setStatusTypes(updatedStatusTypes);
       setCustomStatusTypes(updatedStatusTypes);
       setNewStatusType("");
-  
+
       toast({
         title: "Status type added",
         description: `${data.statusPost.name} has been added to custom status types.`,
       });
-  
     } catch (error: any) {
       toast({
         title: "Error",
@@ -75,11 +74,10 @@ export default function SettingsPage() {
       });
     }
   };
-  
 
   const handleDeleteStatusType = async (id: string) => {
-    let c = confirm("Are you sure you want to remove this status?")
-    if (!c) return
+    let c = confirm("Are you sure you want to remove this status?");
+    if (!c) return;
 
     try {
       const response = await fetch("/api/status", {
@@ -89,22 +87,25 @@ export default function SettingsPage() {
         },
         body: JSON.stringify({ id }),
       });
-  
+
       const data = await response.json();
-  
+
       if (!response.ok) {
         throw new Error(data.message || "Failed to delete status type");
       }
-  
-      const updatedStatusTypes = statusTypes.filter((status) => status.id !== id);
+
+      const updatedStatusTypes = statusTypes.filter(
+        (status) => status.id !== id
+      );
       setStatusTypes(updatedStatusTypes);
       setCustomStatusTypes(updatedStatusTypes);
-  
+
       toast({
         title: "Status type removed",
-        description: `The custom status '${data.deletedStatus?.name || "unknown"}' has been removed.`,
+        description: `The custom status '${
+          data.deletedStatus?.name || "unknown"
+        }' has been removed.`,
       });
-  
     } catch (error: any) {
       toast({
         title: "Error",
@@ -120,7 +121,7 @@ export default function SettingsPage() {
 
   const handleSaveStatusType = async (updatedStatusType: CustomStatusType) => {
     try {
-      await fetch('/api/status', {
+      await fetch("/api/status", {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
@@ -130,11 +131,11 @@ export default function SettingsPage() {
           name: updatedStatusType.name,
         }),
       });
-  
+
       updateCustomStatusType(updatedStatusType.id, updatedStatusType);
       setStatusTypes(getCustomStatusTypes());
       setEditingStatusType(null);
-      
+
       toast({
         title: "Status type updated",
         description: `${updatedStatusType.name} has been updated.`,
@@ -142,15 +143,16 @@ export default function SettingsPage() {
     } catch (error: any) {
       toast({
         title: "Error",
-        description: `Failed to update status: ${error.message || "Unknown error"}`,
+        description: `Failed to update status: ${
+          error.message || "Unknown error"
+        }`,
         variant: "destructive",
       });
     }
   };
-  
-  
+
   return (
-    <RouteGuard allowedRoles={["admin"]}>
+    <RouteGuard requiredPermissions={["edit_settings"]}>
       <div className="container py-8">
         <h1 className="text-3xl font-bold mb-6">Settings</h1>
         <Tabs defaultValue="status-types">

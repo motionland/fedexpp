@@ -1,64 +1,79 @@
-"use client"
+"use client";
 
-import { useState, useEffect } from "react"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { useToast } from "@/components/ui/use-toast"
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
-import { Checkbox } from "@/components/ui/checkbox"
-import { useFetch } from "@/hooks/useFetch"
+import { useState, useEffect } from "react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { useToast } from "@/components/ui/use-toast";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import { Checkbox } from "@/components/ui/checkbox";
+import { useFetch } from "@/hooks/useFetch";
 
 type Permission = {
-  id: string
-  name: string
-  description: string
-}
+  id: string;
+  name: string;
+  description: string;
+};
 
 export interface Role {
-  id: string
-  name: string
-  permissions: Permission[]
+  id: string;
+  name: string;
+  permissions: Permission[];
 }
 
 export function RoleManagement() {
-  const [roles, setRolesState] = useState<Role[]>([])
-  const [permissions, setPermissionsState] = useState<Permission[]>([])
-  const [newRoleName, setNewRoleName] = useState("")
+  const [roles, setRolesState] = useState<Role[]>([]);
+  const [permissions, setPermissionsState] = useState<Permission[]>([]);
+  const [newRoleName, setNewRoleName] = useState("");
   const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [editingRole, setEditingRole] = useState<Role | null>(null)
-  const [selectedPermissionIds, setSelectedPermissionIds] = useState<string[]>([])
-  const { data, refetch } = useFetch<Role[]>('/api/role')
-  const { toast } = useToast()
+  const [editingRole, setEditingRole] = useState<Role | null>(null);
+  const [selectedPermissionIds, setSelectedPermissionIds] = useState<string[]>(
+    []
+  );
+  const { data, refetch } = useFetch<Role[]>("/api/role");
+  const { toast } = useToast();
 
   useEffect(() => {
     setRolesState(data ?? []);
-  }, [data])
+  }, [data]);
 
   useEffect(() => {
-    async function fetchPermission(): Promise<TrackingEntry[]> {
-      const response = await fetch('/api/permissions', {
+    async function fetchPermission(): Promise<Permission[]> {
+      const response = await fetch("/api/permissions", {
         method: "GET",
         headers: {
           "Content-Type": "application/json",
         },
       });
-    
-      const data: TrackingEntry[] = await response.json();
-    
+
+      const data: Permission[] = await response.json();
+
       setPermissionsState(data);
       return data;
-    }    
+    }
 
     fetchPermission();
-  }, [])
+  }, []);
 
   const handleAddRole = async () => {
     const dataBody = {
-      name: newRoleName
-    }
-    
+      name: newRoleName,
+    };
+
     const response = await fetch(`/api/role`, {
       method: "POST",
       headers: {
@@ -73,12 +88,12 @@ export function RoleManagement() {
     }
 
     refetch();
-  }
+  };
 
   const handleDeleteRole = async (id: string) => {
-    let c = confirm("Are you sure you want to remove this role?")
-    if (!c) return
-    
+    let c = confirm("Are you sure you want to remove this role?");
+    if (!c) return;
+
     const response = await fetch(`/api/role`, {
       method: "DELETE",
       headers: {
@@ -92,9 +107,9 @@ export function RoleManagement() {
       return;
     }
 
-    refetch()
-  }
-  
+    refetch();
+  };
+
   const handleEditRole = (role: Role) => {
     setEditingRole({ ...role });
     setSelectedPermissionIds(role.permissions.map((p) => p.id)); // Sync permission state
@@ -105,7 +120,7 @@ export function RoleManagement() {
       id: role.id,
       permissions: selectedPermissionIds,
     };
-  
+
     const response = await fetch(`/api/role`, {
       method: "PUT",
       headers: {
@@ -113,19 +128,18 @@ export function RoleManagement() {
       },
       body: JSON.stringify(dataBody),
     });
-  
+
     if (!response.ok) {
       console.error("Failed to save role permissions");
       return;
     }
-  
+
     toast({ title: "Role updated successfully" });
     setEditingRole(null);
     setSelectedPermissionIds([]);
-    setIsDialogOpen(false)
+    setIsDialogOpen(false);
     refetch();
   };
-  
 
   const togglePermission = (permissionId: string) => {
     setSelectedPermissionIds((prev) =>
@@ -134,7 +148,6 @@ export function RoleManagement() {
         : [...prev, permissionId]
     );
   };
-  
 
   return (
     <div className="space-y-8">
@@ -171,33 +184,55 @@ export function RoleManagement() {
                 <TableCell>
                   <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
                     <DialogTrigger asChild>
-                      <Button variant="outline" size="sm" onClick={() => {
-                        handleEditRole(role);
-                        setIsDialogOpen(true);
-                      }}>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                          handleEditRole(role);
+                          setIsDialogOpen(true);
+                        }}
+                      >
                         Edit
                       </Button>
                     </DialogTrigger>
                     <DialogContent>
                       <DialogHeader>
-                        <DialogTitle>Edit Role: {editingRole?.name}</DialogTitle>
+                        <DialogTitle>
+                          Edit Role: {editingRole?.name}
+                        </DialogTitle>
                       </DialogHeader>
                       <div className="space-y-4">
                         {permissions.map((permission) => (
-                          <div key={permission.id} className="flex items-center space-x-2">
+                          <div
+                            key={permission.id}
+                            className="flex items-center space-x-2"
+                          >
                             <Checkbox
                               id={`permission-${permission.id}`}
-                              checked={selectedPermissionIds?.includes(permission.id)}
-                              onCheckedChange={() => togglePermission(permission.id)}
+                              checked={selectedPermissionIds?.includes(
+                                permission.id
+                              )}
+                              onCheckedChange={() =>
+                                togglePermission(permission.id)
+                              }
                             />
-                            <Label htmlFor={`permission-${permission.id}`}>{permission.description}</Label>
+                            <Label htmlFor={`permission-${permission.id}`}>
+                              {permission.description}
+                            </Label>
                           </div>
                         ))}
-                        <Button onClick={() => handleSaveRole(role)}>Save Changes</Button>
+                        <Button onClick={() => handleSaveRole(role)}>
+                          Save Changes
+                        </Button>
                       </div>
                     </DialogContent>
                   </Dialog>
-                  <Button variant="destructive" size="sm" onClick={() => handleDeleteRole(role.id)} className="ml-2">
+                  <Button
+                    variant="destructive"
+                    size="sm"
+                    onClick={() => handleDeleteRole(role.id)}
+                    className="ml-2"
+                  >
                     Delete
                   </Button>
                 </TableCell>
@@ -207,6 +242,5 @@ export function RoleManagement() {
         </Table>
       </div>
     </div>
-  )
+  );
 }
-

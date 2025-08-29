@@ -53,30 +53,29 @@ async function main() {
   const permissions = [
     {
       name: "view_dashboard",
-      description: "View dashboard"
+      description: "View dashboard",
     },
     {
       name: "manage_users",
-      description: "Manage users"
+      description: "Manage users",
     },
     {
       name: "edit_settings",
-      description: "Edit settings"
+      description: "Edit settings",
     },
     {
       name: "view_reports",
-      description: "View reports"
+      description: "View reports",
     },
-
   ];
 
   for (const p of permissions) {
     const permission = await prisma.permission.findFirst({
       where: { name: p.name },
-    })
+    });
 
-    if(!permission) {
-      await prisma.permission.create({data: p});
+    if (!permission) {
+      await prisma.permission.create({ data: p });
     }
   }
 }
