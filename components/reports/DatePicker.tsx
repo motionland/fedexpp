@@ -25,6 +25,14 @@ export function DatePicker({
   placeholder = "Select date",
 }: DatePickerProps) {
   const [open, setOpen] = React.useState(false);
+  const [month, setMonth] = React.useState<Date>(date || new Date());
+
+  // Update month when date changes or popover opens
+  React.useEffect(() => {
+    if (open && date) {
+      setMonth(date);
+    }
+  }, [open, date]);
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
@@ -60,6 +68,8 @@ export function DatePicker({
             mode="single"
             selected={date}
             captionLayout="dropdown"
+            month={month}
+            onMonthChange={setMonth}
             onSelect={(selectedDate) => {
               setDate(selectedDate);
               setOpen(false);
