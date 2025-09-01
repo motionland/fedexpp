@@ -30,12 +30,11 @@ import { Download, Package } from "lucide-react";
 import { format } from "date-fns";
 
 export function HistoricalScanReports() {
-  const [allReports, setAllReports] = useState<DailyScanReport[]>([]);
   const [selectedReport, setSelectedReport] = useState<DailyScanReport | null>(
     null
   );
   const [currentPage, setCurrentPage] = useState(1);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const entriesPerPage = 5;
@@ -45,75 +44,60 @@ export function HistoricalScanReports() {
     new Date()
   );
 
+  // Fetch data for the selected date
   useEffect(() => {
-    async function fetchAllReports() {
+    async function fetchReportForDate() {
+      if (!selectedDate) {
+        setSelectedReport(null);
+        setCurrentPage(1);
+        return;
+      }
+
       try {
         setLoading(true);
         setError(null);
 
-        // Fetch all tracking entries
-        const allEntries = await getTrackingEntries();
+        // Format selected date to match the date format in reports (YYYY-MM-DD)
+        const selectedDateStr = selectedDate.toLocaleDateString("en-CA"); // en-CA gives YYYY-MM-DD format
 
-        // Group entries by date
-        const reportMap = new Map<string, TrackingEntry[]>();
+        // Create date range for the selected day (start and end of day)
+        const startOfDay = new Date(selectedDate);
+        startOfDay.setHours(0, 0, 0, 0);
 
-        allEntries.forEach((entry) => {
-          if (!entry.timestamp) return;
+        const endOfDay = new Date(selectedDate);
+        endOfDay.setHours(23, 59, 59, 999);
 
-          let entryDate: string;
-          if (typeof entry.timestamp === "string") {
-            entryDate = entry.timestamp.split("T")[0];
-          } else {
-            entryDate = new Date(entry.timestamp).toISOString().split("T")[0];
-          }
-
-          if (!reportMap.has(entryDate)) {
-            reportMap.set(entryDate, []);
-          }
-          reportMap.get(entryDate)!.push(entry);
+        // Fetch tracking entries for the specific date range
+        const dailyEntries = await getTrackingEntries({
+          fromDate: startOfDay.toISOString(),
+          toDate: endOfDay.toISOString(),
+          limit: 10000, // High limit to get all entries for the day
         });
 
-        // Convert to DailyScanReport array and sort by date descending
-        const reports: DailyScanReport[] = Array.from(reportMap.entries())
-          .map(([date, entries]) => ({
-            date,
-            scannedItems: entries.length,
-            trackingDetails: entries,
-          }))
-          .sort(
-            (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
-          );
+        // Create the daily report
+        if (dailyEntries.length > 0) {
+          setSelectedReport({
+            date: selectedDateStr,
+            scannedItems: dailyEntries.length,
+            trackingDetails: dailyEntries,
+          });
+        } else {
+          setSelectedReport(null);
+        }
 
-        setAllReports(reports);
+        setCurrentPage(1); // Reset to first page when date changes
       } catch (err) {
-        console.error("Error fetching historical reports:", err);
-        setError("Failed to load historical reports. Please try again.");
+        console.error("Error fetching report for date:", err);
+        setError(
+          "Failed to load report for the selected date. Please try again."
+        );
       } finally {
         setLoading(false);
       }
     }
 
-    fetchAllReports();
-  }, []);
-
-  // Find report for selected date
-  useEffect(() => {
-    if (!selectedDate) {
-      setSelectedReport(null);
-      setCurrentPage(1);
-      return;
-    }
-
-    // Format selected date to match the date format in reports (YYYY-MM-DD)
-    const year = selectedDate.getFullYear();
-    const month = String(selectedDate.getMonth() + 1).padStart(2, "0");
-    const day = String(selectedDate.getDate()).padStart(2, "0");
-    const selectedDateStr = `${year}-${month}-${day}`;
-
-    const report = allReports.find((report) => report.date === selectedDateStr);
-    setSelectedReport(report || null);
-    setCurrentPage(1); // Reset to first page when date changes
-  }, [allReports, selectedDate]);
+    fetchReportForDate();
+  }, [selectedDate]);
 
   const handleDateChange = (date: Date | undefined) => {
     setSelectedDate(date);
@@ -129,8 +113,20 @@ export function HistoricalScanReports() {
     ? selectedReport.trackingDetails.slice(startIndex, endIndex)
     : [];
 
-  const convertToDateTime = (date: string) =>
-    new Date(date).toISOString().replace("T", " ").substring(0, 16);
+  const convertToDateTime = (date: string) => {
+    // Convert to local time for display consistency
+    const localDate = new Date(date);
+    return localDate
+      .toLocaleString("en-US", {
+        year: "numeric",
+        month: "2-digit",
+        day: "2-digit",
+        hour: "2-digit",
+        minute: "2-digit",
+        hour12: false,
+      })
+      .replace(",", "");
+  };
 
   const convertWeeksToDaysHours = (weeks: string) => {
     const match = weeks.match(/([\d.]+)\s*weeks?/i);
@@ -144,10 +140,8 @@ export function HistoricalScanReports() {
   };
 
   const handleDownload = async (date: string) => {
-    const entries = await getTrackingEntries();
-    const dailyEntries = entries.filter((entry) =>
-      entry.timestamp.startsWith(date)
-    );
+    // Use the selectedReport data that's already loaded for the date
+    const dailyEntries = selectedReport?.trackingDetails || [];
 
     const csvContent = [
       ["Timestamp", "Tracking Number", "Status"].join(","),

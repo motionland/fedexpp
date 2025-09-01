@@ -127,10 +127,20 @@ export async function removeTrackingNumber(id: string) {
   }
 }
 
-export async function getTrackingEntries(): Promise<TrackingEntry[]> {
+export async function getTrackingEntries(options?: {
+  fromDate?: string;
+  toDate?: string;
+  limit?: number;
+}): Promise<TrackingEntry[]> {
   try {
-    // Fetch with a large limit to get all tracking entries for historical reports
-    const response = await fetch("/api/fedex-tracking?limit=1000", {
+    // Build query parameters
+    const params = new URLSearchParams();
+    if (options?.fromDate) params.append("from", options.fromDate);
+    if (options?.toDate) params.append("to", options.toDate);
+    if (options?.limit) params.append("limit", options.limit.toString());
+    else params.append("limit", "1000"); // Default fallback for compatibility
+
+    const response = await fetch(`/api/fedex-tracking?${params}`, {
       method: "GET",
       headers: {
         "Content-Type": "application/json",
@@ -358,7 +368,6 @@ export interface DailyScanReport {
 export async function getHistoricalScanReports(
   days = 10
 ): Promise<DailyScanReport[]> {
-  const entries = await getTrackingEntries();
   const reports: DailyScanReport[] = [];
 
   for (let i = 0; i < days; i++) {
@@ -366,19 +375,18 @@ export async function getHistoricalScanReports(
     date.setDate(date.getDate() - i);
     const formattedDate = date.toISOString().split("T")[0];
 
-    // Filter entries by date, handling both string and Date timestamp formats
-    const dailyEntries = entries.filter((entry) => {
-      if (!entry.timestamp) return false;
+    // Create date range for the specific day
+    const startOfDay = new Date(date);
+    startOfDay.setHours(0, 0, 0, 0);
 
-      // Handle different timestamp formats
-      let entryDate: string;
-      if (typeof entry.timestamp === "string") {
-        entryDate = entry.timestamp.split("T")[0];
-      } else {
-        entryDate = new Date(entry.timestamp).toISOString().split("T")[0];
-      }
+    const endOfDay = new Date(date);
+    endOfDay.setHours(23, 59, 59, 999);
 
-      return entryDate === formattedDate;
+    // Fetch entries for this specific date range
+    const dailyEntries = await getTrackingEntries({
+      fromDate: startOfDay.toISOString(),
+      toDate: endOfDay.toISOString(),
+      limit: 10000, // High limit to get all entries for the day
     });
 
     // Only include reports that have data or if it's today
